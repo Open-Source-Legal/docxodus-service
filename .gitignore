@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+out/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Build
+*.nupkg
