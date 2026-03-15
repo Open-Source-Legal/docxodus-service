@@ -1,8 +1,17 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DocxodusService.Models;
 using Docxodus;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
+
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    WriteIndented = false,
+};
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
@@ -30,9 +39,10 @@ app.MapPost("/parse", (ParseRequest? request) =>
 
     try
     {
-        using var stream = new MemoryStream(docxBytes);
-        var result = OpenContractExporter.Export(stream, request.Filename);
-        return Results.Ok(result);
+        var filename = request.Filename ?? "document.docx";
+        var wmlDoc = new WmlDocument(filename, docxBytes);
+        var export = OpenContractExporter.Export(wmlDoc);
+        return Results.Json(export, jsonOptions);
     }
     catch (Exception ex)
     {
