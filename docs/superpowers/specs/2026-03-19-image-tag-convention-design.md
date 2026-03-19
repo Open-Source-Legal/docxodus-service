@@ -15,7 +15,7 @@ Example: `1.2.0-docxodus5.4.2`
 ## Version Sources
 
 - **Service version:** Extracted from the git tag that triggers the workflow. A `v1.2.0` tag produces service version `1.2.0`.
-- **Docxodus version:** Extracted automatically from `<PackageReference Include="Docxodus" Version="..."/>` in `DocxodusService.csproj` at build time.
+- **Docxodus version:** Extracted automatically from `<PackageReference Include="Docxodus" Version="..."/>` in `DocxodusService.csproj` at build time using `grep` + `sed`. The csproj uses a pinned version (e.g. `5.4.2`); floating/range versions are not supported.
 
 ## Tags Produced
 
@@ -28,10 +28,13 @@ Each publish produces exactly two tags:
 
 Changes are limited to `.github/workflows/publish.yml`:
 
-1. Remove `on.push.branches` trigger — publish only on `v*` tags.
-2. Add step to extract Docxodus version from csproj.
-3. Add step to extract service version from git tag ref (`GITHUB_REF_NAME` minus the `v` prefix).
+1. Remove `on.push.branches` trigger — keep only `tags: ['v*']`.
+2. Add step to extract Docxodus version from csproj via `grep` + `sed`.
+3. Add step to extract service version from `GITHUB_REF_NAME` (strip `v` prefix).
 4. Replace `docker/metadata-action` with explicit tag construction.
+5. Fail the workflow if either version extraction produces an empty string.
+
+This replaces all previous tag patterns (branch, semver-only, SHA). The `latest` tag is new.
 
 ## No Changes Required
 
