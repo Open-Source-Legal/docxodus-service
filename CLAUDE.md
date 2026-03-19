@@ -30,4 +30,4 @@ The sole external library doing the heavy lifting is the [Docxodus](https://www.
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`): Runs `dotnet restore` → `build` → `test` on PRs to main.
-- **Publish** (`.github/workflows/publish.yml`): Builds and pushes Docker image to `ghcr.io` on push to main or version tags (`v*`).
+- **Publish** (`.github/workflows/publish.yml`): Builds and pushes Docker image to `ghcr.io` on `v*` tags. Tags follow `<service-version>-docxodus<lib-version>` format (e.g. `1.2.0-docxodus5.4.2`) plus `latest`.
