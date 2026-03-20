@@ -28,6 +28,8 @@ jobs:
             exit 1
           fi
 
+          IMAGE=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "tag=${SVC_VERSION}-docxodus${DOCXODUS_VERSION}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v3
@@ -41,5 +43,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.versions.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ steps.versions.outputs.image }}:${{ steps.versions.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.versions.outputs.image }}:latest
