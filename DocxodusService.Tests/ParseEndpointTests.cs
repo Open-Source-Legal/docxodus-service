@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Xunit;
 
 namespace DocxodusService.Tests;
 
@@ -82,13 +83,65 @@ public class ParseEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         );
     }
 
+    [Theory]
+    [InlineData("Hello World", "Second paragraph.")]
+    [InlineData("Clause \ud83d\udcdc — café & terms", "第二条: résumé")]
+    public async Task ParseEndpoint_PreservesTextAndAnnotationOffsets(string first, string second)
+    {
+        var response = await _client.PostAsJsonAsync("/parse", new
+        {
+            filename = "contract.docx",
+            docx_base64 = CreateMinimalDocxBase64(first, second),
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        var content = root.GetProperty("content").GetString()!;
+        Assert.Equal($"{first}\n{second}\n", content);
+        Assert.True(root.GetProperty("pageCount").GetInt32() > 0);
+        Assert.NotEmpty(root.GetProperty("pawlsFileContent").EnumerateArray());
+        Assert.Equal(JsonValueKind.Array, root.GetProperty("docLabels").ValueKind);
+
+        var paragraphs = root.GetProperty("labelledText").EnumerateArray()
+            .Where(a => a.GetProperty("annotationLabel").GetString() == "PARAGRAPH")
+            .ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        var expectedStart = 0;
+        foreach (var (annotation, expectedText) in paragraphs.Zip(new[] { first, second }))
+        {
+            Assert.True(annotation.GetProperty("structural").GetBoolean());
+            Assert.Equal(expectedText, annotation.GetProperty("rawText").GetString());
+            var span = annotation.GetProperty("annotationJson");
+            var start = span.GetProperty("start").GetInt32();
+            var end = span.GetProperty("end").GetInt32();
+            // .NET and the browser both address strings in UTF-16 code units.
+            Assert.Equal(expectedStart, start);
+            Assert.Equal(expectedText, content[start..end]);
+            expectedStart += expectedText.Length + 1;
+        }
+    }
+
+    [Fact]
+    public async Task ParseEndpoint_InvalidDocx_ReturnsUnprocessableEntity()
+    {
+        var response = await _client.PostAsJsonAsync("/parse", new
+        {
+            filename = "invalid.docx",
+            docx_base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("not a DOCX archive")),
+        });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
     /// <summary>
     /// Creates a minimal valid DOCX file as a base64 string.
     /// A DOCX is a ZIP archive containing [Content_Types].xml, _rels/.rels,
     /// and word/document.xml with at least one paragraph.
     /// </summary>
-    private static string CreateMinimalDocxBase64()
+    private static string CreateMinimalDocxBase64(params string[] paragraphs)
     {
+        if (paragraphs.Length == 0) paragraphs = new[] { "Hello World" };
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
@@ -113,7 +166,8 @@ public class ParseEndpointTests : IClassFixture<WebApplicationFactory<Program>>
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
                 "<w:body>" +
-                "<w:p><w:r><w:t>Hello World</w:t></w:r></w:p>" +
+                string.Concat(paragraphs.Select(text =>
+                    $"<w:p><w:r><w:t>{System.Security.SecurityElement.Escape(text)}</w:t></w:r></w:p>")) +
                 "</w:body>" +
                 "</w:document>");
         }

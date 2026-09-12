@@ -13,7 +13,7 @@ dotnet test DocxodusService.Tests/ --filter "FullyQualifiedName~MethodName"  # R
 
 ## Architecture
 
-This is a minimal ASP.NET Core (.NET 8) microservice that converts DOCX files to OpenContract JSON format. The entire API is defined in `Program.cs` using minimal API endpoints — there are no controllers.
+This is a minimal ASP.NET Core (.NET 10) microservice that converts DOCX files to OpenContract JSON format. The entire API is defined in `Program.cs` using minimal API endpoints — there are no controllers.
 
 **Core flow:** `POST /parse` receives a base64-encoded DOCX → decodes it → passes bytes to `Docxodus.WmlDocument` → calls `OpenContractExporter.Export()` → returns OpenContractDocExport as JSON.
 
