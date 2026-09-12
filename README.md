@@ -25,12 +25,18 @@ Returns `{"status": "healthy"}` with HTTP 200.
 
 ## Docker
 
+The service uses Docxodus **12.4.1** on .NET 10. Consumers rendering DOCX with
+the `docxodus` npm package must pin it to **12.4.1** too, so extracted text and
+annotation character offsets match the browser renderer.
+
 ```bash
-docker pull ghcr.io/open-source-legal/docxodus-service:latest
-docker run -p 8080:8080 ghcr.io/open-source-legal/docxodus-service:latest
+docker pull ghcr.io/open-source-legal/docxodus-service:1.2.0-docxodus12.4.1
+docker run -p 8080:8080 ghcr.io/open-source-legal/docxodus-service:1.2.0-docxodus12.4.1
 ```
 
 ## Build from source
+
+Requires the .NET 10 SDK.
 
 ```bash
 dotnet build
