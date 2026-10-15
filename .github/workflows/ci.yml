@@ -3,6 +3,9 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  # Production releases wait for this workflow to pass on the pushed main commit.
+  push:
+    branches: [main]
 
 jobs:
   build-and-test:
